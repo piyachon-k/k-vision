@@ -70,27 +70,7 @@ def robot_move(dist_from_center_list, bbox_center_list, camera_center, frame):
 		arduino.write(text.encode())	
 	elif abs(x_dist < 15) and abs(y_dist < 15):
 		print("center OK")
-
-	# if abs( camera_x - obj_x) > 15:
-	# 	if camera_x - obj_x >= 0:
-	# 		print("move >> left")
-	# 		arduino.write('X1*'.encode())
-
-	# 	else:
-	# 		print("move >> right")
-	# 		arduino.write('X0*'.encode())
-
-	# else:
-	# 	if abs( camera_y - obj_y) > 15:
-	# 		if camera_y - obj_y >= 0:
-	# 			arduino.write('Y0*'.encode())
-	# 			print("move >> up")
-	# 		else:
-	# 			arduino.write('Y1*'.encode())
-	# 			print("move >> down")
-	# 	else:
-	# 		print("center OK")
-
+		
 
 def pluse():
 	while cap.isOpened():

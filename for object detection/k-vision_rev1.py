@@ -5,13 +5,13 @@ import numpy as np
 import threading
 import serial
 import sys
+from PIL import Image, ImageTk
 import tkinter as tk
 
 def bbox_drawing(frame, classId, score, bbox):
     cv2.rectangle(frame, (bbox[0], bbox[1]),
                   (bbox[2], bbox[3]), bbox_color[classId],
                   thickness = bbox_thickness)
-
     label = f'{classes[classId]}: {score*100:.2f}'
     (label_width, label_height), baseline = cv2.getTextSize(
                                           label,
@@ -49,7 +49,7 @@ def object_detection():
 
         cv2.imshow('Video Capture', frame)
 
-        if cv2.imshow(1) == 27:
+        if cv2.waitKey(1) == 27:
             break
 
     cap.release()
