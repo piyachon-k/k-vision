@@ -33,17 +33,17 @@ def robot_move(dist_from_center_list, bbox_center_list, camera_center, frame):
 		text = f'X1{abs(x_dist)},Y1{abs(y_dist)}*'
 		print(text)
 		arduino.write(text.encode())
-	else if (x_dist < -15) and (y_dist < -15):  # Move right + down
+	elif (x_dist < -15) and (y_dist < -15):  # Move right + down
 		print('Object in Q2')
 		text = f'X1{abs(x_dist)},Y0{abs(y_dist)}*'
 		print(text)
 		arduino.write(text.encode())
-	else if (x_dist > 15) and (y_dist < -15):  # Move left + down
+	elif (x_dist > 15) and (y_dist < -15):  # Move left + down
 		print('Object in Q3')
 		text = f'X0{abs(x_dist)},Y0{abs(y_dist)}*'
 		print(text)
 		arduino.write(text.encode())
-	else if (x_dist > 15) and (y_dist > 15):  # Move left + up
+	elif (x_dist > 15) and (y_dist > 15):  # Move left + up
 		print('Object in Q4')
 		text = f'X0{abs(x_dist)},Y1{abs(y_dist)}*'
 		print(text)
