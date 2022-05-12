@@ -29,25 +29,45 @@ def robot_move(dist_from_center_list, bbox_center_list, camera_center, frame):
 	cv2.arrowedLine(frame, (camera_x, camera_y), (obj_x, obj_y), (0, 0, 255), 2, 8, 0, 0.1)
 
 	if (x_dist < -15) and (y_dist > 15): # Move right + up
-		print('Object in Q1')
+		# print('Object in Q1')
 		text = f'X1{abs(x_dist)},Y1{abs(y_dist)}*'
-		print(text)
+		print('Object in Q1 : ' + text)
 		arduino.write(text.encode())
 	elif (x_dist < -15) and (y_dist < -15):  # Move right + down
-		print('Object in Q2')
+		# print('Object in Q2')
 		text = f'X1{abs(x_dist)},Y0{abs(y_dist)}*'
-		print(text)
+		print('Object in Q2 : ' + text)
 		arduino.write(text.encode())
 	elif (x_dist > 15) and (y_dist < -15):  # Move left + down
-		print('Object in Q3')
+		# print('Object in Q3')
 		text = f'X0{abs(x_dist)},Y0{abs(y_dist)}*'
-		print(text)
+		print('Object in Q3 : ' + text)
 		arduino.write(text.encode())
 	elif (x_dist > 15) and (y_dist > 15):  # Move left + up
-		print('Object in Q4')
+		# print('Object in Q4')
 		text = f'X0{abs(x_dist)},Y1{abs(y_dist)}*'
-		print(text)
+		print('Object in Q4 : ' + text)
 		arduino.write(text.encode())
+	elif (x_dist < -15) and abs(y_dist < 15):  # Move right
+		# print('Object in Q4')
+		text = f'X1{abs(x_dist)},Y1{0}*'
+		print('Object in X+ : ' + text)
+		arduino.write(text.encode())
+	elif (x_dist > 15) and abs(y_dist < 15):  # Move left
+		# print('Object in Q4')
+		text = f'X0{abs(x_dist)},Y1{0}*'
+		print('Object in X- : ' + text)
+		arduino.write(text.encode())
+	elif abs(x_dist < 15) and (y_dist > 15):  # Move up
+		# print('Object in Q4')
+		text = f'X1{0},Y1{abs(x_dist)}*'
+		print('Object in Y+ : ' + text)
+		arduino.write(text.encode())
+	elif abs(x_dist < 15) and (y_dist < -15):  # Move down
+		# print('Object in Q4')
+		text = f'X1{0},Y0{abs(x_dist)}*'
+		print('Object in Y- : ' + text)
+		arduino.write(text.encode())	
 	else:
 		print("center OK")
 
