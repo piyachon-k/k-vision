@@ -68,7 +68,7 @@ def robot_move(dist_from_center_list, bbox_center_list, camera_center, frame):
 		text = f'X1{0},Y0{abs(y_dist)}*'
 		print('Object in Y- : ' + text)
 		arduino.write(text.encode())	
-	else:
+	elif abs(x_dist < 15) and abs(y_dist < 15):
 		print("center OK")
 
 	# if abs( camera_x - obj_x) > 15:
