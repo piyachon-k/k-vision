@@ -24,9 +24,69 @@ def bbox_drawing(frame, classId, score, bbox):
                 bbox_color[classId], thickness = label_thickness)
 
 
+def object_detected_drawing(frame, dict, height, width):
+    text = 'Object Detected'
+    (label_w, label_h), baseline = cv2.getTextSize(text, 
+                                   cv2.FONT_HERSHEY_SIMPLEX,
+                                   0.75, thickness = 2)
+
+    cv2.putText(frame, text, (width - label_w - 10, 2 + label_h),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                (0, 0, 0), thickness = 2)
+    cv2.putText(frame, text, (width - label_w - 10, 2 + label_h),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                (0, 255, 255), thickness = 1)
+
+    x = width - label_w - 10
+    y = 2 + label_h
+    for key in dict:
+        text = f'{key} : {dict[key]}'
+        (label_w, label_h), baseline = cv2.getTextSize(
+                                          text,
+                                          cv2.FONT_HERSHEY_SIMPLEX,
+                                          0.75,
+                                          thickness = 1)
+        cv2.putText(frame, text, (x, y + label_h + 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                    (0, 0, 0), thickness = 2)
+        cv2.putText(frame, text, (x, y + label_h + 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                    (0, 255, 255), thickness = 1)
+
+        y = y + label_h + 5
+
+    cv2.putText(frame, 'Status : ', (2, height - 2), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1,
+                (0, 0, 0), thickness = 2)
+    cv2.putText(frame, 'Status : ', (2, height - 2), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1,
+                (255, 255, 255), thickness = 1)
+
+
+def ui_drawing(frame):
+    (label_w, label_h), baseline = cv2.getTextSize('K - VISION', 
+                                   cv2.FONT_HERSHEY_SIMPLEX,
+                                   1, thickness = 2)
+
+    frame = cv2.copyMakeBorder(src=frame, top=(10 + label_h), 
+            bottom=0, left=0, right=0, borderType=cv2.BORDER_CONSTANT)
+    
+    cv2.putText(frame, 'K - VISION', (2, 4 + label_h),
+               cv2.FONT_HERSHEY_SIMPLEX, 1,
+               (200, 213, 48), thickness = 2)
+
+    return frame
+
+
 def object_detection():
+    cv2.namedWindow('Video Capture', cv2.WINDOW_NORMAL)
+
     while camera.isOpened():
+
         start = time.time()
+
+        class_name_list = []
+        det_object_list = []
 
         ret, frame = camera.read()
 
@@ -39,20 +99,36 @@ def object_detection():
             x_roi, y_roi, w_roi, h_roi = roi
             frame = undis[y_roi:y_roi + h_roi, x_roi:x_roi + w_roi]
 
+        frame_h, frame_w, _ = frame.shape
+
         classIds, scores, boxes = model.detect(frame,
                                   confThreshold = conf_thres,
                                   nmsThreshold = nms_thres)
 
+        for classId in classIds:
+            class_name_list.append(classes[classId])
+
+        class_name_list_rm_dup = set(class_name_list)
+
+        class_dict = { name : class_name_list.count(name) 
+                     for name in (class_name_list_rm_dup) }
+
+        # print(class_dict)
+
         for (classId, score, box) in zip(classIds, scores, boxes):
             bbox = [box[0], box[1], box[0] + box[2], box[1] + box[3]]
             bbox_drawing(frame, classId, score, bbox)
+
+        object_detected_drawing(frame, class_dict, frame_h, frame_w)
+
+        frame = ui_drawing(frame)
 
         cv2.imshow('Video Capture', frame)
 
         if cv2.waitKey(1) == 27:
             break
 
-    cap.release()
+    camera.release()
     cv2.destroyAllWindows()
 
 def set_up_properties():
@@ -71,8 +147,7 @@ def set_up_properties():
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
 
-    if camera.isOpened():
-        print('camera connected!!')
+    print('camera connected!!')
 
     with open(names_file, 'r') as f:
         classes = f.read().splitlines()
@@ -80,7 +155,7 @@ def set_up_properties():
     random.seed(120)
 
     for i in range(len(classes)):
-    	bbox_color.append((random.randint(0,255), random.randint(0,255),
+        bbox_color.append((random.randint(0,255), random.randint(0,255),
                     random.randint(0,255)))
 
     net = cv2.dnn.readNetFromDarknet(cfg_file, weights_file)
@@ -93,15 +168,14 @@ def set_up_properties():
     model.setInputParams(scale=1 / 255, size=(416, 416), swapRB=True)
 
     if camera_calibrate:
-    	oldMtx = np.load(camera_matrix_file)
-    	coef = np.load(distortion_coef_file)
+        oldMtx = np.load(camera_matrix_file)
+        coef = np.load(distortion_coef_file)
 
-    	newMtx, roi = cv2.getOptimalNewCameraMatrix(oldMtx, coef,
-                    (cam_width,cam_height), 1,
-                    (cam_width,cam_height))
+        newMtx, roi = cv2.getOptimalNewCameraMatrix(oldMtx, coef,
+                      (cam_width,cam_height), 1,
+                      (cam_width,cam_height))
 
-    threading.Thread(target = object_detection).start()
-
+    object_detection()
 
 if __name__ == '__main__':
     # arduino = serial.Serial(port = 'COM4', baudrate = 115200, timeout=0.01)
@@ -129,4 +203,4 @@ if __name__ == '__main__':
     conf_thres = 0.5
     nms_thres = 0.3
 
-    set_up_properties()
+    threading.Thread(target = set_up_properties).start()
