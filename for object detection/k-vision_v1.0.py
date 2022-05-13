@@ -5,8 +5,18 @@ import numpy as np
 import threading
 import serial
 import sys
-from PIL import Image, ImageTk
-import tkinter as tk
+
+def two_layer_text(frame, text, b_color, 
+                   f_color, b_thick, f_thick, 
+                   text_size, pos_x, pos_y):
+
+    cv2.putText(frame, text, (pos_x, pos_y),
+                cv2.FONT_HERSHEY_SIMPLEX, text_size,
+                b_color, thickness = b_thick)
+    cv2.putText(frame, text, (pos_x, pos_y),
+                cv2.FONT_HERSHEY_SIMPLEX, text_size,
+                f_color, thickness = f_thick)
+
 
 def bbox_drawing(frame, classId, score, bbox):
     cv2.rectangle(frame, (bbox[0], bbox[1]),
@@ -28,17 +38,11 @@ def object_detected_drawing(frame, dict, height, width):
     text = 'Object Detected'
     (label_w, label_h), baseline = cv2.getTextSize(text, 
                                    cv2.FONT_HERSHEY_SIMPLEX,
-                                   0.75, thickness = 2)
+                                   0.75, thickness = 3)
+    two_layer_text(frame, text, color['black'], color['yellow'], 
+                   3, 1, 0.75, (width - label_w - 10), (2 + label_h))
 
-    cv2.putText(frame, text, (width - label_w - 10, 2 + label_h),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                (0, 0, 0), thickness = 2)
-    cv2.putText(frame, text, (width - label_w - 10, 2 + label_h),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                (0, 255, 255), thickness = 1)
-
-    x = width - label_w - 10
-    y = 2 + label_h
+    y = 2 + label_h + baseline
     for key in dict:
         text = f'{key} : {dict[key]}'
         (label_w, label_h), baseline = cv2.getTextSize(
@@ -46,21 +50,18 @@ def object_detected_drawing(frame, dict, height, width):
                                           cv2.FONT_HERSHEY_SIMPLEX,
                                           0.75,
                                           thickness = 1)
-        cv2.putText(frame, text, (x, y + label_h + 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                    (0, 0, 0), thickness = 2)
-        cv2.putText(frame, text, (x, y + label_h + 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                    (0, 255, 255), thickness = 1)
+        two_layer_text(frame, text, color['black'], color['yellow'],
+                       3, 1, 0.75, (width - label_w - 5), (y + label_h + 5))
+        y = y + label_h + 2 + baseline
 
-        y = y + label_h + 5
-
-    cv2.putText(frame, 'Status : ', (2, height - 2), 
-                cv2.FONT_HERSHEY_SIMPLEX, 1,
-                (0, 0, 0), thickness = 2)
-    cv2.putText(frame, 'Status : ', (2, height - 2), 
-                cv2.FONT_HERSHEY_SIMPLEX, 1,
-                (255, 255, 255), thickness = 1)
+    text = 'Status : OK'
+    (label_w, label_h), baseline = cv2.getTextSize(
+                                          text,
+                                          cv2.FONT_HERSHEY_SIMPLEX,
+                                          1.5,
+                                          thickness = 6)
+    two_layer_text(frame, text, color['black'], color['white'],
+                   6, 3, 1.5, 2, (2 + label_h))
 
 
 def ui_drawing(frame):
@@ -68,8 +69,8 @@ def ui_drawing(frame):
                                    cv2.FONT_HERSHEY_SIMPLEX,
                                    1, thickness = 2)
 
-    frame = cv2.copyMakeBorder(src=frame, top=(10 + label_h), 
-            bottom=0, left=0, right=0, borderType=cv2.BORDER_CONSTANT)
+    frame = cv2.copyMakeBorder(src = frame, top = (10 + label_h), 
+            bottom = 0, left = 0, right = 0, borderType = cv2.BORDER_CONSTANT)
     
     cv2.putText(frame, 'K - VISION', (2, 4 + label_h),
                cv2.FONT_HERSHEY_SIMPLEX, 1,
@@ -82,6 +83,7 @@ def object_detection():
     cv2.namedWindow('Video Capture', cv2.WINDOW_NORMAL)
 
     while camera.isOpened():
+    # while True:
 
         start = time.time()
 
@@ -89,6 +91,9 @@ def object_detection():
         det_object_list = []
 
         ret, frame = camera.read()
+        # ret = True
+        # frame = np.zeros((cam_height, cam_width, 3), np.uint8)
+        # frame[:,0:cam_width] = (255,255,255)
 
         if not ret:
             print('frame read error!!')
@@ -130,6 +135,7 @@ def object_detection():
 
     camera.release()
     cv2.destroyAllWindows()
+
 
 def set_up_properties():
     global camera
@@ -177,10 +183,17 @@ def set_up_properties():
 
     object_detection()
 
+
 if __name__ == '__main__':
     # arduino = serial.Serial(port = 'COM4', baudrate = 115200, timeout=0.01)
 
     bbox_color = []
+
+    color = {
+        'blue': (255, 0, 0), 'green': (0, 255, 0),  'red': (0, 0, 255),
+        'yellow': (0, 255, 255), 'magenta': (255, 0, 255), 'cyan': (255, 255, 0),
+        'white': (255, 255, 255), 'black': (0, 0, 0), 'gray': (125, 125, 125),
+        'dark_gray': (50, 50, 50), 'light_gray': (220, 220, 220)}
 
     bbox_thickness = 2
     label_size = 0.5
