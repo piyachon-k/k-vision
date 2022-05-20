@@ -130,7 +130,6 @@ def object_detection():
                       (cam_width,cam_height))
 
     while camera.isOpened():
-    # while True:
 
         start = time.time()
 
@@ -141,9 +140,6 @@ def object_detection():
         detect_status = []
 
         ret, frame = camera.read()
-        # ret = True
-        # frame = np.zeros((cam_height, cam_width, 3), np.uint8)
-        # frame[:,0:cam_width] = (255,255,255)
 
         if not ret:
             print('frame read error!!')
@@ -181,8 +177,6 @@ def object_detection():
             checking_status = 'NG'
         else:
             checking_status = 'OK'
-
-        # print(detected_dict)
 
         for (classId, score, box) in zip(classIds, scores, boxes):
             bbox = [box[0], box[1], box[0] + box[2], box[1] + box[3]]

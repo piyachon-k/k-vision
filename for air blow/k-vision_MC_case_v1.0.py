@@ -56,20 +56,6 @@ def object_detected_drawing(frame, dict, height, width, checking_status):
         two_layer_text(frame, text, color['black'], color['yellow'],
                        3, 1, 0.75, (width - label_w - 5), (y + label_h + 2))
         y = y + label_h + 2 + baseline
-    
-    # text = f'Status : {checking_status}'
-    # (label_w, label_h), baseline = cv2.getTextSize(
-    #                                             text,
-    #                                             cv2.FONT_HERSHEY_SIMPLEX,
-    #                                             1.5,
-    #                                             thickness = 6)
-    
-    # if checking_status == 'NG':
-    #     two_layer_text(frame, text, color['black'], color['yellow'],
-    #                     6, 3, 1.5, 2, (2 + label_h))
-    # elif checking_status == 'OK':
-    #     two_layer_text(frame, text, color['black'], color['green'],
-    #                     6, 3, 1.5, 2, (2 + label_h))
 
 
 def ui_drawing(frame, fps, width):
@@ -106,99 +92,9 @@ def serial_print(class_name_list):
         elif class_name == "TMC60D":
             text = '<34>'
             arduino.write(text.encode())
-        # elif class_name == "":
-        #     text = '35'
-        #     arduino.write(text.encode())
 
 
 def object_detection():
-
-    while camera.isOpened():
-    # while True:
-
-        start = time.time()
-
-        cv2.namedWindow('Video Capture', cv2.WINDOW_NORMAL)
-
-        class_name_list = []
-        det_object_list = []
-        detect_status = []
-
-        ret, frame = camera.read()
-        # ret = True
-        # frame = np.zeros((cam_height, cam_width, 3), np.uint8)
-        # frame[:,0:cam_width] = (255,255,255)
-
-        if not ret:
-            print('frame read error!!')
-            break
-
-        if camera_calibrate:
-            undis = cv2.undistort(frame, oldMtx, coef, None, newMtx)
-            x_roi, y_roi, w_roi, h_roi = roi
-            frame = undis[y_roi:y_roi + h_roi, x_roi:x_roi + w_roi]
-
-        frame_h, frame_w, _ = frame.shape
-
-        classIds, scores, boxes = model.detect(frame,
-                                  confThreshold = conf_thres,
-                                  nmsThreshold = nms_thres)
-
-        for classId in classIds:
-            class_name_list.append(classes[classId])
-
-        class_name_list_rm_dup = set(class_name_list)
-
-        detected_dict = { name : class_name_list.count(name) 
-                     for name in (class_name_list_rm_dup) }
-
-        # for key in things_to_det:
-        #     if key in detected_dict:
-        #         if things_to_det[key] == detected_dict[key]:
-        #             detect_status.append(True)
-        #         else:
-        #             detect_status.append(False)
-        #     else:
-        #         detect_status.append(False)
-
-        # if False in detect_status:
-        #     checking_status = 'NG'
-        # else:
-        #     checking_status = 'OK'
-
-        # print(detected_dict)
-
-        for (classId, score, box) in zip(classIds, scores, boxes):
-            bbox = [box[0], box[1], box[0] + box[2], box[1] + box[3]]
-
-            # bbox drawing function edit properties in heare
-            bbox_drawing(frame, classId, score, bbox)
-
-        serial_print(class_name_list_rm_dup)
-    
-        object_detected_drawing(frame, detected_dict, frame_h, frame_w, checking_status)
-
-        fps = 1/(time.time() - start)
-
-        frame = ui_drawing(frame, fps, frame_w)
-
-        cv2.imshow('Video Capture', frame)
-
-        if cv2.waitKey(1) == 27:
-            break
-
-    camera.release()
-    cv2.destroyAllWindows()
-
-
-def set_up_properties():
-    global camera
-    global classes
-    global model
-    global oldMtx
-    global coef
-    global newMtx
-    global roi
 
     print('waiting for camera')
 
@@ -235,7 +131,63 @@ def set_up_properties():
                       (cam_width,cam_height), 1,
                       (cam_width,cam_height))
 
-    object_detection()
+        while camera.isOpened():
+
+        start = time.time()
+
+        cv2.namedWindow('Video Capture', cv2.WINDOW_NORMAL)
+
+        class_name_list = []
+        det_object_list = []
+        detect_status = []
+
+        ret, frame = camera.read()
+
+        if not ret:
+            print('frame read error!!')
+            break
+
+        if camera_calibrate:
+            undis = cv2.undistort(frame, oldMtx, coef, None, newMtx)
+            x_roi, y_roi, w_roi, h_roi = roi
+            frame = undis[y_roi:y_roi + h_roi, x_roi:x_roi + w_roi]
+
+        frame_h, frame_w, _ = frame.shape
+
+        classIds, scores, boxes = model.detect(frame,
+                                  confThreshold = conf_thres,
+                                  nmsThreshold = nms_thres)
+
+        for classId in classIds:
+            class_name_list.append(classes[classId])
+
+        class_name_list_rm_dup = set(class_name_list)
+
+        detected_dict = { name : class_name_list.count(name) 
+                     for name in (class_name_list_rm_dup) }
+
+        for (classId, score, box) in zip(classIds, scores, boxes):
+            bbox = [box[0], box[1], box[0] + box[2], box[1] + box[3]]
+
+            # bbox drawing function edit properties in heare
+            bbox_drawing(frame, classId, score, bbox)
+
+        serial_print(class_name_list_rm_dup)
+    
+        object_detected_drawing(frame, detected_dict, frame_h, frame_w, checking_status)
+
+        fps = 1/(time.time() - start)
+
+        frame = ui_drawing(frame, fps, frame_w)
+
+        cv2.imshow('Video Capture', frame)
+
+        if cv2.waitKey(1) == 27:
+            break
+
+    camera.release()
+    cv2.destroyAllWindows()
+
 
 
 if __name__ == '__main__':
@@ -279,4 +231,4 @@ if __name__ == '__main__':
     ##### list of object you want to detect #####
     # things_to_det = {'person': 1, 'surfboard': 1}
 
-    threading.Thread(target = set_up_properties).start()
+    threading.Thread(target = object_detection).start()
