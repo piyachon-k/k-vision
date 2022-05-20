@@ -34,8 +34,8 @@ def bbox_drawing(frame, classId, score, bbox):
                 bbox_color[classId], thickness = label_thickness)
 
 
-def object_detected_drawing(frame, dict, height, width):
-    text = 'Object Detected'
+def object_detected_drawing(frame, dict, height, width, checking_status):
+    text = 'OBJECT DETECTED'
     (label_w, label_h), baseline = cv2.getTextSize(text, 
                                    cv2.FONT_HERSHEY_SIMPLEX,
                                    0.75, thickness = 3)
@@ -49,22 +49,27 @@ def object_detected_drawing(frame, dict, height, width):
                                           text,
                                           cv2.FONT_HERSHEY_SIMPLEX,
                                           0.75,
-                                          thickness = 1)
+                                          thickness = 3)
         two_layer_text(frame, text, color['black'], color['yellow'],
-                       3, 1, 0.75, (width - label_w - 5), (y + label_h + 5))
+                       3, 1, 0.75, (width - label_w - 5), (y + label_h + 2))
         y = y + label_h + 2 + baseline
-
-    text = 'Status : OK'
+    
+    text = f'Status : {checking_status}'
     (label_w, label_h), baseline = cv2.getTextSize(
-                                          text,
-                                          cv2.FONT_HERSHEY_SIMPLEX,
-                                          1.5,
-                                          thickness = 6)
-    two_layer_text(frame, text, color['black'], color['white'],
-                   6, 3, 1.5, 2, (2 + label_h))
+                                                text,
+                                                cv2.FONT_HERSHEY_SIMPLEX,
+                                                1.5,
+                                                thickness = 6)
+    
+    if checking_status == 'NG':
+        two_layer_text(frame, text, color['black'], color['yellow'],
+                        6, 3, 1.5, 2, (2 + label_h))
+    elif checking_status == 'OK':
+        two_layer_text(frame, text, color['black'], color['green'],
+                        6, 3, 1.5, 2, (2 + label_h))
 
 
-def ui_drawing(frame):
+def ui_drawing(frame, fps, width):
     (label_w, label_h), baseline = cv2.getTextSize('K - VISION', 
                                    cv2.FONT_HERSHEY_SIMPLEX,
                                    1, thickness = 2)
@@ -76,19 +81,64 @@ def ui_drawing(frame):
                cv2.FONT_HERSHEY_SIMPLEX, 1,
                (200, 213, 48), thickness = 2)
 
+    (label_w, label_h), baseline = cv2.getTextSize(f'FPS : {fps:.2f}', 
+                                   cv2.FONT_HERSHEY_SIMPLEX,
+                                   1, thickness = 2)
+    cv2.putText(frame, f'FPS : {fps:.2f}', (width - 2 - label_w, 4 + label_h),
+               cv2.FONT_HERSHEY_SIMPLEX, 1,
+               (200, 213, 48), thickness = 2)
+
     return frame
 
 
 def object_detection():
-    cv2.namedWindow('Video Capture', cv2.WINDOW_NORMAL)
+
+    print('waiting for camera')
+
+    camera = cv2.VideoCapture(cam_index)
+    camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
+
+    print('camera connected!!')
+
+    with open(names_file, 'r') as f:
+        classes = f.read().splitlines()
+
+    random.seed(120)
+
+    for i in range(len(classes)):
+        bbox_color.append((random.randint(0,255), random.randint(0,255),
+                    random.randint(0,255)))
+
+    ##### set up dnn #####
+    net = cv2.dnn.readNetFromDarknet(cfg_file, weights_file)
+    if use_cuda:
+        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+        net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+
+    model = cv2.dnn_DetectionModel(net)
+    model.setInputParams(scale=1 / 255, size=(416, 416), swapRB=True)
+
+    ##### camera calibrate properties #####
+    if camera_calibrate:
+        oldMtx = np.load(camera_matrix_file)
+        coef = np.load(distortion_coef_file)
+
+        newMtx, roi = cv2.getOptimalNewCameraMatrix(oldMtx, coef,
+                      (cam_width,cam_height), 1,
+                      (cam_width,cam_height))
 
     while camera.isOpened():
     # while True:
 
         start = time.time()
 
+        cv2.namedWindow('Video Capture', cv2.WINDOW_NORMAL)
+
         class_name_list = []
         det_object_list = []
+        detect_status = []
 
         ret, frame = camera.read()
         # ret = True
@@ -115,18 +165,34 @@ def object_detection():
 
         class_name_list_rm_dup = set(class_name_list)
 
-        class_dict = { name : class_name_list.count(name) 
+        detected_dict = { name : class_name_list.count(name) 
                      for name in (class_name_list_rm_dup) }
 
-        # print(class_dict)
+        for key in things_to_det:
+            if key in detected_dict:
+                if things_to_det[key] == detected_dict[key]:
+                    detect_status.append(True)
+                else:
+                    detect_status.append(False)
+            else:
+                detect_status.append(False)
+
+        if False in detect_status:
+            checking_status = 'NG'
+        else:
+            checking_status = 'OK'
+
+        # print(detected_dict)
 
         for (classId, score, box) in zip(classIds, scores, boxes):
             bbox = [box[0], box[1], box[0] + box[2], box[1] + box[3]]
             bbox_drawing(frame, classId, score, bbox)
 
-        object_detected_drawing(frame, class_dict, frame_h, frame_w)
+        object_detected_drawing(frame, detected_dict, frame_h, frame_w, checking_status)
 
-        frame = ui_drawing(frame)
+        fps = 1/(time.time() - start)
+
+        frame = ui_drawing(frame, fps, frame_w)
 
         cv2.imshow('Video Capture', frame)
 
@@ -136,59 +202,12 @@ def object_detection():
     camera.release()
     cv2.destroyAllWindows()
 
-
-def set_up_properties():
-    global camera
-    global classes
-    global model
-    global oldMtx
-    global coef
-    global newMtx
-    global roi
-
-    print('waiting for camera')
-
-    camera = cv2.VideoCapture(cam_index)
-    camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
-
-    print('camera connected!!')
-
-    with open(names_file, 'r') as f:
-        classes = f.read().splitlines()
-
-    random.seed(120)
-
-    for i in range(len(classes)):
-        bbox_color.append((random.randint(0,255), random.randint(0,255),
-                    random.randint(0,255)))
-
-    net = cv2.dnn.readNetFromDarknet(cfg_file, weights_file)
-
-    if use_cuda:
-        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-        net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-
-    model = cv2.dnn_DetectionModel(net)
-    model.setInputParams(scale=1 / 255, size=(416, 416), swapRB=True)
-
-    if camera_calibrate:
-        oldMtx = np.load(camera_matrix_file)
-        coef = np.load(distortion_coef_file)
-
-        newMtx, roi = cv2.getOptimalNewCameraMatrix(oldMtx, coef,
-                      (cam_width,cam_height), 1,
-                      (cam_width,cam_height))
-
-    object_detection()
-
-
 if __name__ == '__main__':
+    ##### set up i/o #####
     # arduino = serial.Serial(port = 'COM4', baudrate = 115200, timeout=0.01)
 
     bbox_color = []
-
+  
     color = {
         'blue': (255, 0, 0), 'green': (0, 255, 0),  'red': (0, 0, 255),
         'yellow': (0, 255, 255), 'magenta': (255, 0, 255), 'cyan': (255, 255, 0),
@@ -199,21 +218,29 @@ if __name__ == '__main__':
     label_size = 0.5
     label_thickness = 2
 
+    ##### camera properties #####
     cam_index = 1
     cam_width = 1280
     cam_height = 720
 
+    ##### weight file #####
     names_file = 'coco.names' # .names
     cfg_file = 'yolov4-tiny.cfg' # .cfg
     weights_file = 'yolov4-tiny.weights' # .weights
 
+    ##### camera calibrate #####
     camera_calibrate = False
     camera_matrix_file = '' # .npy
     distortion_coef_file = '' # .npy
 
+    ##### back end [True : cuda / False : cpu] #####
     use_cuda = True
 
+    ##### detection threshold #####
     conf_thres = 0.5
     nms_thres = 0.3
 
-    threading.Thread(target = set_up_properties).start()
+    ##### list of object you want to detect #####
+    things_to_det = {'person': 1, 'surfboard': 1}
+
+    threading.Thread(target = object_detection).start()
