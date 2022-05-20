@@ -19,9 +19,12 @@ def two_layer_text(frame, text, b_color,
 
 
 def bbox_drawing(frame, classId, score, bbox):
+    # detection box
     cv2.rectangle(frame, (bbox[0], bbox[1]),
                   (bbox[2], bbox[3]), bbox_color[classId],
                   thickness = bbox_thickness)
+
+    # detection label
     label = f'{classes[classId]}: {score*100:.2f}'
     (label_width, label_height), baseline = cv2.getTextSize(
                                           label,
@@ -92,12 +95,16 @@ def ui_drawing(frame, fps, width):
 
 
 def serial_print(class_name_list):
+    # serial for robot program is '<(32 + robot_pg)>'
+    # ex: if we write '<33>' robot will run program 1 [ 32 + 1 ]
+    # '<40>' robot will run program 8 [ 32 + 8 ]
+
     for class_name in class_name_list:
         if class_name == "CH36":
-            text = '33'
+            text = '<33>'
             arduino.write(text.encode())
         elif class_name == "TMC60D":
-            text = '34'
+            text = '<34>'
             arduino.write(text.encode())
         # elif class_name == "":
         #     text = '35'
@@ -163,6 +170,8 @@ def object_detection():
 
         for (classId, score, box) in zip(classIds, scores, boxes):
             bbox = [box[0], box[1], box[0] + box[2], box[1] + box[3]]
+
+            # bbox drawing function edit properties in heare
             bbox_drawing(frame, classId, score, bbox)
 
         serial_print(class_name_list_rm_dup)
