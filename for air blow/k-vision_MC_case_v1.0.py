@@ -37,7 +37,7 @@ def bbox_drawing(frame, classId, score, bbox):
                 bbox_color[classId], thickness = label_thickness)
 
 
-def object_detected_drawing(frame, dict, height, width, checking_status):
+def object_detected_drawing(frame, dict, height, width):
     text = 'OBJECT DETECTED'
     (label_w, label_h), baseline = cv2.getTextSize(text, 
                                    cv2.FONT_HERSHEY_SIMPLEX,
@@ -95,6 +95,7 @@ def serial_print(class_name_list):
 
 
 def object_detection():
+    global classes
 
     print('waiting for camera')
 
@@ -131,7 +132,7 @@ def object_detection():
                       (cam_width,cam_height), 1,
                       (cam_width,cam_height))
 
-        while camera.isOpened():
+    while camera.isOpened():
 
         start = time.time()
 
@@ -174,7 +175,7 @@ def object_detection():
 
         serial_print(class_name_list_rm_dup)
     
-        object_detected_drawing(frame, detected_dict, frame_h, frame_w, checking_status)
+        object_detected_drawing(frame, detected_dict, frame_h, frame_w)
 
         fps = 1/(time.time() - start)
 
@@ -192,7 +193,7 @@ def object_detection():
 
 if __name__ == '__main__':
     ##### set up i/o #####
-    # arduino = serial.Serial(port = 'COM4', baudrate = 115200, timeout=0.01)
+    arduino = serial.Serial(port = 'COM3', baudrate = 115200, timeout=0.01)
 
     bbox_color = []
   
