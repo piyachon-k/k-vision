@@ -54,19 +54,19 @@ def object_detected_drawing(frame, dict, height, width, checking_status):
                        3, 1, 0.75, (width - label_w - 5), (y + label_h + 2))
         y = y + label_h + 2 + baseline
     
-    text = f'Status : {checking_status}'
-    (label_w, label_h), baseline = cv2.getTextSize(
-                                                text,
-                                                cv2.FONT_HERSHEY_SIMPLEX,
-                                                1.5,
-                                                thickness = 6)
+    # text = f'Status : {checking_status}'
+    # (label_w, label_h), baseline = cv2.getTextSize(
+    #                                             text,
+    #                                             cv2.FONT_HERSHEY_SIMPLEX,
+    #                                             1.5,
+    #                                             thickness = 6)
     
-    if checking_status == 'NG':
-        two_layer_text(frame, text, color['black'], color['yellow'],
-                        6, 3, 1.5, 2, (2 + label_h))
-    elif checking_status == 'OK':
-        two_layer_text(frame, text, color['black'], color['green'],
-                        6, 3, 1.5, 2, (2 + label_h))
+    # if checking_status == 'NG':
+    #     two_layer_text(frame, text, color['black'], color['yellow'],
+    #                     6, 3, 1.5, 2, (2 + label_h))
+    # elif checking_status == 'OK':
+    #     two_layer_text(frame, text, color['black'], color['green'],
+    #                     6, 3, 1.5, 2, (2 + label_h))
 
 
 def ui_drawing(frame, fps, width):
@@ -93,10 +93,10 @@ def ui_drawing(frame, fps, width):
 
 def serial_print(class_name_list):
     for class_name in class_name_list:
-        if class_name == "":
+        if class_name == "CH36":
             text = '33'
             arduino.write(text.encode())
-        elif class_name == "":
+        elif class_name == "TMC60D":
             text = '34'
             arduino.write(text.encode())
         # elif class_name == "":
